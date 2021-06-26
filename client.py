@@ -1,4 +1,4 @@
-  
+import time
 import socket
 import pickle
 
@@ -140,6 +140,7 @@ print("Socket is created.")
 
 soc.connect(("localhost", 10000))
 print("Connected to the server.")
+
 nn = NeuralNet()
 
 received_data = b''

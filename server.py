@@ -29,7 +29,7 @@ class NeuralNet():
         print("Created")
         print(self.params)
 
-  
+
 class SocketThread(threading.Thread):
 
     def __init__(self, connection, client_info, buffer_size=1024):
@@ -40,7 +40,7 @@ class SocketThread(threading.Thread):
         nn = NeuralNet()  # create the NN model
         Gparams = nn.params.copy()
         msg = pickle.dumps(Gparams)
-        #connection.sendall(msg)
+        connection.sendall(msg)
         print("Server sent intial global message to the client.")
 
     def recv(self):
@@ -97,19 +97,43 @@ print("Socket is created.")
 soc.bind(("localhost", 10000))
 print("Socket is bound to an address & port number.")
 
-soc.listen(1)
+soc.listen(10)
 print("Listening for incoming connection ...")
 
-while True:
-    try:
-        connection, client_info = soc.accept()
-        print("New Connection from {client_info}.".format(client_info=client_info))
+# while True:
+#     try:
+#         connection, client_info = soc.accept()
+#         print("New Connection from {client_info}.".format(client_info=client_info))
 
-        socket_thread = SocketThread(connection=connection,
-                                     client_info=client_info,
-                                     buffer_size=1024)
-        socket_thread.start()
-    except:
-        soc.close()
-        print(" Socket Closed Because no Connections Received.\n")
-        break
+#         socket_thread = SocketThread(connection=connection,
+#                                      client_info=client_info,
+#                                      buffer_size=1024)
+#         socket_thread.start()
+#     except:
+#         soc.close()
+#         print(" Socket Closed Because no Connections Received.\n")
+#         break
+
+import time
+
+
+def multicast(text):
+    MCAST_GRP = '224.1.1.1'
+    MCAST_PORT = 5007
+
+    cmd = b'recvmodel'
+    data = b'some data sent by server'
+
+    MULTICAST_TTL = 255
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
+    print("server connected")
+    while True:
+        sock.sendto(cmd, (MCAST_GRP, MCAST_PORT))
+        sock.sendto(data, (MCAST_GRP, MCAST_PORT))
+        print("message sent")
+        # rec = sock.recv(1000)
+        # print(rec)
+
+        time.sleep(5)
