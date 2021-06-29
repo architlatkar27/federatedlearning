@@ -14,63 +14,52 @@ MULTICAST_TTL = 255
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
-print("server connected")
+print("multicast server connected")
 
 sock1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock1.bind("localhost", 5008)
+sock1.bind(("localhost", 5008))
 sock1.listen(5)
 
 #helper functions
-arr = []
-def aggregator():
-    return sum(arr)/len(arr)
+our_model = 10
+def aggregator(new_model):
+    global our_model
+    avg = (our_model+new_model)//2
+    our_model = avg
+    # return avg
+
 def recv_threaded_client(connection, lock):
+    #step 2
+    print("request for aggregation received")
     data = connection.recv(100000)
+    print("got model: {}".format(data))
     lock.acquire()
-    arr.append(int(str(data)))
+    aggregator(int(data)) # here, we must parse the actual model and then pass it on. Taking a number for testing purpose
+    sock.sendto(str(our_model).encode("ascii"), (MCAST_GRP, MCAST_PORT))
+    print("new model is: {}".format(our_model))
     lock.release()
     connection.close()
+
 
 con_threads = []
 lock = Lock()
 
 while True:
     '''
-    step1 - send getmodel command
+    step1 receive client's model
+    step2 generate aggregate model
+    step3 broadcast aggregate model to all clients
 
-    step2 - receive model parameters from the clients
-
-    step3 - create an aggregate model
-
-    step4 - send recvmodel command
-
-    step5 - send aggregate model params
     '''
     #step 1
-    sock.sendto(b'getmodel', (MCAST_GRP, MCAST_PORT))
+    Client, address = sock1.accept()
+    t1 = Thread(target=recv_threaded_client, args=(Client, lock))
+    t1.start()
+    print("aggregation done")
+    #step 3
+    #sock.sendto(str(our_model).encode("ascii"), (MCAST_GRP, MCAST_PORT))
+    print("new model multicasted to all clients")
 
-    #step 2
-    start_time = time()
-    limit = 10
-    while True:
-        if time()-start_time > limit:
-            break
-        Client, address = sock1.accept()
-        con_threads.append(Thread(target=recv_threaded_client, args=(Client, lock)))
-        con_threads[-1].start()
-    
-    for t in con_threads:
-        t.join()
-    
-    #hopefully, we have acquired models so time for step 3
-    new_model = aggregator()
-
-    #step 4
-    sock.sendto(b'recvmodel', (MCAST_GRP, MCAST_PORT))
-    #step 5
-    sock.sendto(str(new_model).encode(), (MCAST_GRP, MCAST_PORT))
-    
-    sleep(5)
 
 
 
