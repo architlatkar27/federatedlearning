@@ -42,13 +42,13 @@ while True:
         print("client connected to server")
         sock1.send(str(client_model).encode("ascii"))
         print("client sent model to server")
-        y = sock.recv(1024)
-        print("got y: {} of type {}".format(y, type(y)))
-        y = int(y)
-        client_model = y
-        print("client model updated from server")
         sock1.close()
 
+    y = sock.recv(1024)
+    print("got y: {} of type {}".format(y, type(y)))
+    y = int(y)
+    client_model = y
+    print("client model updated from server")
     print("model: {}".format(client_model))
     client_model += random.randint(-5, 5)
     sleep(5)
